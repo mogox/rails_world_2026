@@ -1,0 +1,20 @@
+<% if notice %>
+  <p class="notice"><%= notice %></p>
+<% end %>
+
+<%= link_to "Add a coffee place", new_coffee_place_path, role: "button" %>
+
+<h2>Coffee places</h2>
+
+<% @coffee_places.each do |place| %>
+  <article>
+    <header><strong><%= link_to place.name, coffee_place_path(place) %></strong></header>
+    <p><%= place.address %></p>
+    <% if place.rating.present? %>
+      <p class="place-rating"><%= "★" * place.rating %><%= "☆" * (5 - place.rating) %></p>
+    <% end %>
+    <% if place.favorite_drink.present? %>
+      <p class="place-favorite-drink">Favorite drink: <%= place.favorite_drink.name %></p>
+    <% end %>
+  </article>
+<% end %>

@@ -1,0 +1,2 @@
+class Coffee < Beverage
+end

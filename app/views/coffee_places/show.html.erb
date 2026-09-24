@@ -1,0 +1,60 @@
+<%= link_to "← Coffee places", coffee_places_path %>
+
+<h2><%= @coffee_place.name %></h2>
+
+<% if @mcp_unavailable %>
+  <p class="notice">Live card unavailable — showing basic info.</p>
+  <p><%= @coffee_place.address %></p>
+  <% if @coffee_place.rating.present? %>
+    <p class="place-rating"><%= "★" * @coffee_place.rating %><%= "☆" * (5 - @coffee_place.rating) %></p>
+  <% end %>
+  <% if @coffee_place.favorite_drink.present? %>
+    <p class="place-favorite-drink">Favorite drink: <%= @coffee_place.favorite_drink.name %></p>
+  <% end %>
+<% else %>
+  <%= content_tag :iframe, "", id: "coffee-place-card", srcdoc: @card_html, sandbox: "allow-scripts", style: "display: block; width: 100%; max-width: 100%; min-height: 70vh; border: 0; box-sizing: border-box;" %>
+
+  <script>
+    (function () {
+      var iframe = document.getElementById("coffee-place-card");
+      if (!iframe) return;
+
+      window.addEventListener("message", function (event) {
+        if (event.source !== iframe.contentWindow) return;
+        if (!event.data || event.data.type !== "tool") return;
+
+        var toolName = event.data.payload.toolName;
+        var params = event.data.payload.params;
+
+        fetch("<%= mcp_action_coffee_place_path(@coffee_place) %>", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]').content,
+            "Accept": "application/json"
+          },
+          body: JSON.stringify({ tool_name: toolName, params: params })
+        })
+          .then(function (response) {
+            return response.json().then(function (data) {
+              return { ok: response.ok, data: data };
+            });
+          })
+          .then(function (result) {
+            if (result.ok && result.data.html) {
+              iframe.addEventListener("load", function replyOnce() {
+                iframe.removeEventListener("load", replyOnce);
+                iframe.contentWindow.postMessage({ type: "tool-result", success: true, toolName: toolName, params: params }, "*");
+              });
+              iframe.srcdoc = result.data.html;
+            } else {
+              iframe.contentWindow.postMessage({ type: "tool-result", success: false, error: (result.data && result.data.error) || "Unknown error", toolName: toolName, params: params }, "*");
+            }
+          })
+          .catch(function (err) {
+            iframe.contentWindow.postMessage({ type: "tool-result", success: false, error: err.message, toolName: toolName, params: params }, "*");
+          });
+      });
+    })();
+  </script>
+<% end %>

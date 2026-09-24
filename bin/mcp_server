@@ -1,0 +1,17 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require_relative "../config/environment"
+require "rackup"
+require_relative "../mcp_server/server"
+
+port = ENV.fetch("MCP_SERVER_PORT", 3001).to_i
+
+server = McpServer.build
+
+puts "=== Coffee Spots MCP Server ==="
+puts "Listening on http://localhost:#{port}"
+puts "Tools: #{server.tools.keys.join(", ")}"
+puts "Press Ctrl+C to stop"
+
+Rackup::Handler.get("puma").run(McpServer.rack_app(server), Port: port, Host: "localhost")
